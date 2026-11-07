@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Gram Urja – Microgrid Energy Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root{--bg:#EAF4E5;--panel:#FFFFFF;--ink:#20352B;--mute:#5A7566;--line:#CFE1C9;--pri:#173F35;--accent:#3B8060;--sage:#A8D5A2;--solar:#F4C95D;--wind:#2B7FB8;--batt:#3B8060;--load:#C4472B;--diesel:#7A6F66;--soft:#DDEBD7;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+
+
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);font:15px/1.5 "Public Sans",system-ui,sans-serif;display:flex}
+h1,h2,h3{font-family:"Bricolage Grotesque","Public Sans",sans-serif;margin:0;font-weight:700;letter-spacing:-.01em}
+aside{width:224px;flex:none;background:var(--pri);color:#EAF4E5;padding:20px 12px;position:sticky;top:0;height:100vh;display:flex;flex-direction:column;gap:4px}
+.brand{font:700 20px "Bricolage Grotesque",sans-serif;padding:4px 10px 16px;display:flex;gap:8px;align-items:center}
+.brand i{width:14px;height:14px;border-radius:50%;background:var(--solar);box-shadow:0 0 0 4px #F4C95D55}
+aside a{color:#B9CFC8;text-decoration:none;padding:9px 12px;border-radius:8px;font-weight:500;display:block}
+aside a:hover{background:#ffffff14}
+aside a.on{background:var(--sage);color:var(--pri)}
+a:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--solar);outline-offset:2px}
+.site{margin-top:auto;padding:10px;font-size:13px;color:#8FB0A6}
+main{flex:1;min-width:0;padding:24px 28px 40px;max-width:1240px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:20px;background:var(--pri);color:#fff;padding:20px 22px;border-radius:14px;border-bottom:4px solid var(--solar)}
+.top h1{font-size:28px}.top p{margin:2px 0 0;color:var(--sage)}
+.pill{display:inline-flex;gap:8px;align-items:center;padding:6px 12px;border-radius:99px;background:var(--sage);color:var(--pri);font-weight:600;font-size:13px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--batt);animation:p 2s infinite}
+@keyframes p{50%{opacity:.3}}
+.grid{display:grid;gap:16px}
+.g4{grid-template-columns:repeat(auto-fit,minmax(190px,1fr))}
+.g2{grid-template-columns:repeat(auto-fit,minmax(340px,1fr))}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;min-width:0}
+.card h3{font-size:17px;margin-bottom:2px}.sub{color:var(--mute);font-size:13px;margin:0 0 12px}
+.kpi b{display:block;font:700 30px "Bricolage Grotesque",sans-serif;line-height:1.1;margin-top:6px}
+.kpi span{color:var(--mute);font-size:13px}.kpi em{font-style:normal;font-size:13px;font-weight:600}
+.up{color:var(--batt)}.dn{color:var(--load)}
+.view{display:none}.view.on{display:block}
+.view>.grid,.view>.card{margin-bottom:16px}
+.ch{position:relative;height:280px}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{text-align:left;padding:10px 8px;border-bottom:1px solid var(--line)}
+th{color:var(--mute);font-weight:600;font-size:13px}
+.tw{overflow-x:auto}
+.tag{padding:2px 9px;border-radius:99px;font-size:12px;font-weight:600;background:var(--soft)}
+.tag.ok{color:var(--batt)}.tag.warn{color:var(--solar)}.tag.bad{color:var(--load)}
+.btns{display:flex;gap:6px;flex-wrap:wrap}
+button,select{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--panel);color:var(--ink);padding:7px 13px;border-radius:8px;cursor:pointer}
+button.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+.top button.on{background:var(--solar);color:var(--pri);border-color:var(--solar)}
+.card.kpi{border-top:4px solid var(--accent)}
+.cells{display:grid;grid-template-columns:repeat(8,1fr);gap:6px}
+.cell{background:var(--soft);border-radius:6px;padding:6px 2px;text-align:center;font-size:12px;font-weight:600}
+.cell.hot{background:#E3A00833;color:var(--solar)}
+.sched{display:grid;grid-template-columns:repeat(24,1fr);gap:2px}
+.sched i{height:34px;border-radius:3px;background:var(--line)}
+.sched i.c{background:var(--batt)}.sched i.d{background:var(--load)}
+.leg{display:flex;gap:14px;font-size:13px;color:var(--mute);margin-top:8px;flex-wrap:wrap}
+.leg s{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;text-decoration:none}
+.feed{display:grid;grid-template-columns:1fr auto auto;gap:6px 14px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}
+.feed:last-child{border:0}
+.bar{grid-column:1/-1;height:6px;border-radius:4px;background:var(--soft);overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);transition:width .4s}
+.sw{position:relative;width:42px;height:24px;appearance:none;border-radius:99px;background:var(--line);cursor:pointer;border:0;padding:0}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s}
+.sw:checked{background:var(--accent)}.sw:checked::after{left:21px}
+.ins{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid var(--line)}.ins:last-child{border:0}
+.ins b{display:block}.ins span{color:var(--mute);font-size:14px}
+.flow path{stroke-dasharray:6 6;animation:f 1.2s linear infinite;fill:none;stroke-width:3}
+@keyframes f{to{stroke-dashoffset:-12}}
+svg text{fill:var(--ink);font-family:"Public Sans",sans-serif}
+.ring{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+input[type=range]{accent-color:var(--accent);width:100%}
+@media (max-width:820px){body{display:block}aside{width:auto;height:auto;position:sticky;z-index:5;flex-direction:row;overflow-x:auto;padding:8px;gap:2px;top:env(safe-area-inset-top,0px)}.brand,.site{display:none}aside a{white-space:nowrap}main{padding:16px 14px 32px}.g2{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){.flow path,.dot{animation:none}}
+#login{position:fixed;inset:0;z-index:50;background:var(--pri);display:flex;align-items:center;justify-content:center;padding:20px;overflow:auto}
+#login .box{background:#fff;border-radius:16px;padding:28px;width:100%;max-width:400px;border-bottom:5px solid var(--solar)}
+#login h1{font-size:28px;color:var(--pri)}#login p{color:var(--mute);margin:4px 0 12px}
+#login label{display:block;font-weight:600;font-size:14px;margin:12px 0 4px}
+#login input,#login select{width:100%;padding:12px;font-size:16px;border:1px solid var(--line);border-radius:8px;font-weight:400;background:#fff;color:var(--ink)}
+.big{width:100%;margin-top:16px;padding:13px;font-size:16px;background:var(--pri);color:#fff;border-color:var(--pri)}
+.ghost{width:100%;margin-top:8px;padding:11px;background:transparent}
+.ubar{display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px;font-size:14px}
+.ubar .who{margin-right:auto;font-weight:600}
+.hide{display:none!important}
+.in{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--panel);color:var(--ink)}
+.fl{display:block;font-weight:600;font-size:14px;margin:12px 0 4px}
+.pbtn2{margin-top:14px;background:var(--pri);color:#fff;border-color:var(--pri)}
+.nrow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}.nrow:last-child{border:0}
+details{border-bottom:1px solid var(--line);padding:12px 0}details:last-child{border:0}summary{cursor:pointer;font-weight:600}details p{margin:8px 0 0;color:var(--mute)}
+.hero{background:var(--pri);color:#fff;border-radius:14px;padding:32px 28px;border-bottom:4px solid var(--solar);margin-bottom:16px}
+.hero h1{font-size:32px}.hero p{color:var(--sage);max-width:560px;margin:8px 0 18px}.hero button{margin:0 8px 6px 0}.hero .gold{background:var(--solar);color:var(--pri);border-color:var(--solar)}
+.tile{cursor:pointer;text-align:left;display:block;width:100%;font:inherit;color:inherit;transition:.15s}.tile:hover{border-color:var(--accent);transform:translateY(-2px)}
+.tile i{font-style:normal;font-size:26px;display:block;margin-bottom:6px}.tile b{display:block;font:700 16px "Bricolage Grotesque",sans-serif}.tile span{color:var(--mute);font-size:14px;font-weight:400}
+#welcome{position:fixed;inset:0;z-index:60;background:radial-gradient(circle at 80% 15%,#3B806077 0,transparent 45%),var(--pri);color:#fff;display:flex;align-items:center;justify-content:center;padding:24px;overflow:auto}
+.wbox{max-width:760px;width:100%}
+.wbrand{font:700 22px "Bricolage Grotesque",sans-serif;display:flex;gap:10px;align-items:center;margin-bottom:36px}
+.wbrand i{width:16px;height:16px;border-radius:50%;background:var(--solar);box-shadow:0 0 0 6px #F4C95D44}
+#welcome h1{font-size:clamp(32px,6vw,56px);line-height:1.08;max-width:640px}
+#welcome p{color:var(--sage);font-size:17px;max-width:560px;margin:16px 0 26px}
+.wbtns button{padding:13px 24px;font-size:16px;margin:0 10px 10px 0;border-radius:99px}
+.wbtns .gold{background:var(--solar);color:var(--pri);border-color:var(--solar)}
+.wbtns button:not(.gold){background:transparent;color:#fff;border-color:#ffffff66}
+.wfeat{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-top:30px}
+.wfeat div{background:#ffffff14;border-radius:12px;padding:14px;font-size:14px;color:#D5E7DC}.wfeat b{display:block;font-size:15px;color:#fff}
+.wstats{margin-top:22px;color:#B6D0C4;font-size:14px}
+aside{background:linear-gradient(180deg,#173F35 0%,#10302A 100%);width:248px;padding:18px 14px;overflow-y:auto;gap:2px}
+.brand{padding:4px 6px 14px;gap:10px;font-size:20px;line-height:1.1}
+.brand i{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;font-style:normal;font-size:20px;color:var(--pri);box-shadow:none}
+.brand small{display:block;font:500 12px "Public Sans",sans-serif;color:#8FB0A6;margin-top:3px}
+.lbl{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#6F9487;font-weight:600;padding:14px 10px 6px}
+aside a{display:flex;align-items:center;gap:12px;padding:7px 10px;border-radius:12px;color:#C5D8D0;font-weight:500;position:relative;transition:background .15s,transform .15s}
+aside a::before{content:'•';width:34px;height:34px;border-radius:10px;background:#ffffff14;display:grid;place-items:center;font-size:16px;flex:none;transition:.15s}
+aside a:hover{background:#ffffff0f;transform:translateX(3px);color:#fff}
+aside a.on{background:linear-gradient(90deg,#3B806099,#3B806022);color:#fff;font-weight:600}
+aside a.on::before{background:var(--solar)}
+aside a.on::after{content:'';position:absolute;left:-14px;top:10px;bottom:10px;width:4px;border-radius:0 4px 4px 0;background:var(--solar)}
+aside a[data-v=home]::before{content:'◆'}aside a[data-v=dashboard]::before{content:'▦'}aside a[data-v=monitoring]::before{content:'▮'}aside a[data-v=prediction]::before{content:'↗'}aside a[data-v=battery]::before{content:'◐'}aside a[data-v=distribution]::before{content:'⇄'}aside a[data-v=reports]::before{content:'▤'}aside a[data-v=account]::before{content:'●'}aside a[data-v=support]::before{content:'?'}
+.navcard{margin-top:auto;background:#ffffff12;border-radius:14px;padding:14px;font-size:13px;color:#C5D8D0}.navcard b{display:block;color:#fff;font-size:15px;margin:4px 0 2px}.navcard small{color:#8FB0A6}
+@media (max-width:820px){aside{position:fixed;top:auto;bottom:0;left:0;right:0;height:auto;width:100%;flex-direction:row;overflow-x:auto;overflow-y:hidden;padding:8px 8px calc(8px + env(safe-area-inset-bottom,0px));gap:4px;z-index:30;background:#10302A;box-shadow:0 -4px 20px #0003}.lbl,.brand,.navcard{display:none}aside a{flex-direction:column;gap:3px;font-size:11px;padding:6px 10px;min-width:74px;text-align:center;white-space:nowrap}aside a::before{width:30px;height:30px}aside a:hover{transform:none}aside a.on::after{display:none}main{padding-bottom:100px}}
+body{font-size:17px}
+button,select,.in{min-height:44px}
+.kpi b{font-size:34px}.card h3{font-size:19px}.sub{font-size:15px}
+aside a[data-v=community]::before{content:'◎'}
+.demo{background:#FFF6DC;border:1px solid var(--solar);color:#5A4510;border-radius:12px;padding:10px 14px;font-size:14px;margin-bottom:14px;display:flex;gap:8px;align-items:center}
+.alertbar{border-radius:12px;padding:14px 16px;margin-bottom:14px;font-weight:600}
+.alertbar.warn{background:#FFF1C9;color:#5A4510;border:1px solid var(--solar)}.alertbar.bad{background:#FBE0D9;color:#7A2210;border:1px solid var(--load)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:99px;overflow:hidden;background:#fff}.seg button{border:0;border-radius:0;background:none;color:var(--ink)}.seg button.on{background:var(--pri);color:#fff}
+.top .seg button{color:var(--ink)}.top .seg button.on{color:#fff}
+#login .seg{display:flex;width:100%}#login .seg button{flex:1}
+#login .big{min-height:48px}
+details.card summary{cursor:pointer;font-weight:600;font-size:17px}
+.tag.ok{color:#2A6B4C}.tag.warn{color:#8A6508;background:#FFF1C9}.tag.bad{color:#9A2C16;background:#FBE0D9}
+.ubar{flex-wrap:wrap}
+.seg,#login .box{background:var(--panel)}
+#login h1{color:var(--ink)}#login input,#login select{background:var(--panel);color:var(--ink)}
+:root[data-theme=dark]{color-scheme:dark;--bg:#0F1F1A;--panel:#17302A;--ink:#E6F1EA;--mute:#9DB8AA;--line:#2A4A40;--soft:#1F3B33;--pri:#17503F;--accent:#5FB88E;--batt:#5FB88E;--load:#F0806A;--wind:#5BAEE3;--diesel:#A99E94}
+:root[data-theme=dark] .demo,:root[data-theme=dark] .alertbar.warn{background:#3A3216;color:#F2DFA0}
+:root[data-theme=dark] .alertbar.bad{background:#40201A;color:#F6C2B6}
+:root[data-theme=dark] .tag.ok{color:#7FD3A8}:root[data-theme=dark] .tag.warn{color:#F2C95D;background:#3A3216}:root[data-theme=dark] .tag.bad{color:#F6A99A;background:#40201A}
+.badge{background:var(--load);color:#fff;border-radius:99px;padding:0 7px;font-size:12px;margin-left:6px;min-width:20px;display:inline-block;text-align:center}
+#np{position:fixed;right:16px;top:70px;width:min(380px,calc(100vw - 32px));max-height:70vh;overflow:auto;z-index:40;box-shadow:0 12px 40px #0004}
+.nph{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}.nph button{min-height:36px;font-size:14px}
+.ins.unread{background:var(--soft);border-radius:10px;padding-left:10px;padding-right:10px}
+.ins small{display:block;color:var(--mute);font-size:12px;margin-top:2px}
+#toast{position:fixed;left:50%;transform:translateX(-50%);bottom:24px;background:var(--pri);color:#fff;padding:12px 18px;border-radius:12px;z-index:70;max-width:min(92vw,420px);box-shadow:0 8px 30px #0005;border-left:5px solid var(--solar)}
+@media (max-width:820px){#toast{bottom:96px}#np{top:12px}}
+.ibtn{position:relative;width:44px;padding:0;display:grid;place-items:center;border-radius:50%}
+.ibtn svg{display:block}.ibtn .badge{position:absolute;top:-5px;right:-5px;margin:0;min-width:20px;padding:0 5px;font-size:11px;line-height:20px}
+#home .g4{grid-template-columns:repeat(4,1fr)}
+@media (max-width:1000px){#home .g4{grid-template-columns:repeat(2,1fr)}}
+@media (max-width:520px){#home .g4{grid-template-columns:1fr}}
+.how{counter-reset:st}.how .card{counter-increment:st}
+.how .card::before{content:counter(st);display:grid;place-items:center;width:36px;height:36px;border-radius:50%;background:var(--sage);color:#173F35;font-weight:700;margin-bottom:10px}
+.how .card b{display:block;font-size:18px}
+.tile .go{display:block;margin-top:10px;color:var(--accent);font-weight:600;font-size:14px}
+.how .tile::before{margin-bottom:10px}
+</style>
+</head>
+<body>
+<div id="welcome"><div class="wbox">
+<div class="wbrand"><i></i>Gram Urja</div>
+<h1>Clean, reliable power for every village</h1>
+<p>Smart energy management for rural microgrids. See how much power the sun and wind are making, how much is stored, and the best time to use it.</p>
+<div class="wbtns"><button class="gold" id="gs">Get started →</button><button id="wl">Log in</button></div>
+<div class="wfeat"><div><b>Solar and wind, live</b>See how much power your village makes.</div><div><b>Battery you can trust</b>Know how much power is stored and for how long.</div><div><b>Simple forecasts</b>Plan the best time to run the pump and mill.</div></div>
+<div class="wstats">Sample village: Chandpur · 84 homes · simulated data</div>
+</div></div>
+<div id="login" class="hide"><div class="box">
+<h1>Welcome</h1><p>Choose how you want to continue.</p>
+<div class="seg"><button class="on" data-t="in">Log in</button><button data-t="up">Sign up</button></div>
+<div id="f-in"><label for="lu">Mobile number</label><input id="lu" inputmode="tel" autocomplete="username"><label for="lp">PIN</label><input id="lp" type="password" inputmode="numeric" autocomplete="current-password"><button class="big" id="lg">Log in</button></div>
+<div id="f-up" class="hide"><label for="su-n">Your name</label><input id="su-n" autocomplete="name"><label for="su-m">Mobile number</label><input id="su-m" inputmode="tel" autocomplete="tel"><label for="su-p">Choose a PIN (4 numbers or more)</label><input id="su-p" type="password" inputmode="numeric" autocomplete="new-password"><button class="big" id="su-go">Create my account</button></div>
+<p id="ac-msg" role="alert" style="color:var(--load);font-size:14px;min-height:20px;margin:10px 0 0"></p>
+<button class="ghost" id="gst">Continue as guest</button>
+<button class="ghost" id="lx">Back to home</button>
+<p style="font-size:13px;margin:12px 0 0">Guests can see village information but not personal household details. Accounts are saved only on this device (demo). Your PIN is never saved as plain text.</p>
+</div></div>
+<aside>
+  <div class="brand"><i>G</i><div>Gram Urja<small>Microgrid EMS</small></div></div>
+  <div class="lbl">Start</div><a href="#home" data-v="home">Home</a>
+  <a href="#dashboard" data-v="dashboard">Dashboard</a>
+  <a href="#community" data-v="community">Community</a>
+  <div class="lbl">My energy</div><a href="#monitoring" data-v="monitoring">Energy Usage</a>
+  <a href="#battery" data-v="battery">Solar &amp; Battery</a>
+  <a href="#prediction" data-v="prediction">Forecast</a>
+  <a href="#distribution" data-v="distribution">Energy Distribution</a>
+  <div class="lbl">More</div><a href="#reports" data-v="reports">Reports</a>
+  <a href="#support" data-v="support">Help</a>
+  <a href="#account" data-v="account">My Account</a>
+  <div class="navcard"><div>Your village</div><b>Chandpur Village</b><small>Microgrid MG-07</small></div>
+</aside>
+<main>
+<div class="ubar"><span class="who" id="who">Guest visitor</span><button id="bell" class="ibtn" aria-label="Notifications" title="Notifications" aria-expanded="false"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg><span class="badge hide" id="nb">0</span></button><button id="th" class="ibtn" aria-label="Switch to dark theme" title="Switch to dark theme"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></button><button class="on" id="li">Log in / Sign up</button><button id="lo" class="hide">Log out</button></div>
+<div id="alert" class="alertbar hide" role="alert"></div>
+<div id="np" class="card hide" role="dialog" aria-label="Notifications"><div class="nph"><h3>Notifications</h3><button id="nread">Mark all as read</button></div><div id="nlist"></div></div>
+<div id="toast" class="hide" role="status"></div>
+
+<section class="view on" id="home">
+  <div class="hero"><h1 id="h-hi">Welcome to Gram Urja</h1><p>Gram Urja helps your village use electricity wisely. See how much solar power is made, how much is saved in the battery, and the best time to run the pump, mill or iron.</p>
+    <button class="gold" data-go="dashboard">Explore Dashboard</button><button id="gs2">Get Started</button></div>
+  <div class="grid g4">
+    <div class="card kpi"><span>Electricity supply</span><b id="h-st">Good</b><em id="h-st2"></em></div>
+    <div class="card kpi"><span>Solar power now</span><b id="h-gen">0 kW</b><em class="up">From the sun</em></div>
+    <div class="card kpi"><span>Battery level</span><b id="h-soc">0%</b><em id="h-bk"></em></div>
+    <div class="card kpi"><span>Best time for pump or mill</span><b style="font-size:22px">11 am – 1 pm</b><em class="up">The sun is strongest</em></div>
+  </div>
+  <h3 style="margin:4px 0 12px">How Gram Urja helps your village</h3>
+  <div class="grid g4 how">
+    <button class="card tile" data-go="dashboard"><b>See your power</b><span>Check how much electricity is used and made.</span><small class="go">Open Dashboard →</small></button>
+    <button class="card tile" data-go="prediction"><b>Plan your day</b><span>Know the best time to use big machines.</span><small class="go">Open Forecast →</small></button>
+    <button class="card tile" data-go="community"><b>Get alerts</b><span>Be told about power cuts and low battery.</span><small class="go">See alerts →</small></button>
+    <button class="card tile" data-go="distribution"><b>Share fairly</b><span>The clinic and school get power first.</span><small class="go">See who gets power first →</small></button>
+  </div>
+  <div class="grid g4">
+    <button class="card tile" data-go="community"><b>Community</b><span>Village totals and alerts</span></button>
+    <button class="card tile" data-go="monitoring"><b>Energy Usage</b><span>Daily and monthly use</span></button>
+    <button class="card tile" data-go="reports"><b>Reports</b><span>Summaries and PDF</span></button>
+    <button class="card tile" data-go="support"><b>Help</b><span>Questions and how to use</span></button>
+  </div>
+</section>
+
+<section class="view" id="dashboard">
+  <div class="top"><div><h1>Dashboard</h1><p>Your village’s electricity at a glance.</p></div></div>
+  <div class="grid g4">
+    <div class="card kpi"><span>Electricity used now</span><b id="k-load">0 kW</b><em id="k-load2"></em></div>
+    <div class="card kpi"><span>Solar energy now</span><b id="k-gen">0 kW</b><em class="up" id="k-gen2"></em></div>
+    <div class="card kpi"><span>Battery level</span><b id="k-soc">0%</b><em id="k-soc2"></em></div>
+    <div class="card kpi"><span>Electricity supply</span><b id="k-sup">Good</b><em id="k-sup2"></em></div>
+  </div>
+  <div class="card" style="margin-bottom:16px"><h3>Today in simple words</h3><p id="d-say" style="margin:6px 0 0"></p></div>
+  <div class="grid g2">
+    <div class="card"><h3>Where electricity comes from and goes</h3><p class="sub">Example using sample data.</p>
+      <svg viewBox="0 0 440 300" width="100%" role="img" aria-label="Power flow between solar, wind, battery, controller and village load">
+        <g class="flow"><path id="f1" d="M90 60 L200 140" stroke="var(--solar)"/><path id="f2" d="M90 240 L200 160" stroke="var(--wind)"/><path id="f3" d="M240 160 L350 240" stroke="var(--batt)"/><path d="M240 140 L350 60" stroke="var(--load)"/></g>
+        <circle cx="220" cy="150" r="34" fill="var(--pri)"/><text x="220" y="148" text-anchor="middle" style="fill:#fff;font-weight:600;font-size:12px">Smart</text><text x="220" y="163" text-anchor="middle" style="fill:#fff;font-weight:600;font-size:12px">controller</text>
+        <g font-size="13" text-anchor="middle"><rect x="30" y="30" width="120" height="56" rx="10" fill="var(--soft)"/><text x="90" y="53" font-weight="600">Solar</text><text id="n-sol" x="90" y="72">0 kW</text>
+        <rect x="30" y="214" width="120" height="56" rx="10" fill="var(--soft)"/><text x="90" y="237" font-weight="600">Wind</text><text id="n-wnd" x="90" y="256">0 kW</text>
+        <rect x="290" y="30" width="120" height="56" rx="10" fill="var(--soft)"/><text x="350" y="53" font-weight="600">Village load</text><text id="n-lod" x="350" y="72">0 kW</text>
+        <rect x="290" y="214" width="120" height="56" rx="10" fill="var(--soft)"/><text x="350" y="237" font-weight="600">Battery</text><text id="n-bat" x="350" y="256">0 kW</text></g>
+      </svg></div>
+    <div class="card"><h3>Today: solar and electricity used</h3><p class="sub">Sample day. A higher line means more power.</p><div class="ch"><canvas id="c-day"></canvas></div></div>
+  </div>
+  <div class="card"><h3>Alerts</h3><div id="d-alerts"></div></div>
+</section>
+
+<section class="view" id="community">
+  <div class="top"><div><h1>Community</h1><p>Totals for the whole village. No one’s private details are shown here.</p></div></div>
+  <div class="grid g4">
+    <div class="card kpi"><span>Connected households</span><b>84</b><em>Sample village</em></div>
+    <div class="card kpi"><span>Village usage today</span><b id="c-use">0 kWh</b><em>So far today</em></div>
+    <div class="card kpi"><span>Solar made today</span><b id="c-sol">0 kWh</b><em class="up">So far today</em></div>
+    <div class="card kpi"><span>Electricity available</span><b id="c-av">Yes</b><em id="c-av2"></em></div>
+  </div>
+  <div class="grid g2">
+    <div class="card"><h3>Village usage and solar today</h3><p class="sub">Sample day. kW means how much power at that hour.</p><div class="ch"><canvas id="c-comm"></canvas></div></div>
+    <div class="card"><h3>Community alerts</h3><div id="c-alerts"></div>
+      <p class="sub" style="margin-top:14px">Try the alerts (demo only):</p><div class="btns"><button id="da-out">Preview power cut</button><button id="da-low">Preview low battery</button><button id="da-clr">Clear</button></div></div>
+  </div>
+</section>
+
+<section class="view" id="monitoring">
+  <div class="top"><div><h1>Energy Usage</h1><p>How much electricity a home uses. Example household, sample data.</p></div><div class="seg" id="uperiod"><button class="on" data-p="d">Daily</button><button data-p="m">Monthly</button></div></div>
+  <div class="grid g4">
+    <div class="card kpi"><span>Used today</span><b id="u-today">0 kWh</b><em>So far today</em></div>
+    <div class="card kpi"><span>Used this month</span><b id="u-month">0 kWh</b><em>Last 30 days</em></div>
+    <div class="card kpi"><span>Average each day</span><b id="u-avg">0 kWh</b><em>One kWh is one “unit”</em></div>
+    <div class="card kpi"><span>Busiest time</span><b style="font-size:26px">7 – 9 pm</b><em class="dn">Try to use less</em></div>
+  </div>
+  <div class="card"><h3 id="u-title">Electricity used each hour today</h3><p class="sub">Each bar is one period. Dark bars are the busiest times.</p><div class="ch"><canvas id="c-usage"></canvas></div></div>
+  <details class="card"><summary>Meter readings (sample data)</summary><div class="tw"><table><thead><tr><th>Device</th><th>Type</th><th>Power</th><th>Voltage</th><th>Frequency</th><th>Status</th></tr></thead><tbody id="mon-body"></tbody></table></div></details>
+</section>
+
+<section class="view" id="prediction">
+  <div class="top"><div><h1>Forecast</h1><p>What to expect from the sun, and how much power the village may need. Sample forecast.</p></div>
+    <div class="btns" id="hz"><button class="on" data-h="24">Next 24 h</button><button data-h="48">Next 48 h</button></div></div>
+  <div class="grid g4">
+    <div class="card kpi"><span>How accurate is it?</span><b>Very good</b><em class="up">Usually within 5%</em></div>
+    <div class="card kpi"><span>Solar power expected</span><b id="p-sol">0 kWh</b><em>Some clouds expected</em></div>
+    <div class="card kpi"><span>Power needed</span><b id="p-dem">0 kWh</b><em>Evening peak at 7 pm</em></div>
+    <div class="card kpi"><span>Possible shortage</span><b style="font-size:26px">About 1 hour</b><em class="dn">Early tomorrow morning</em></div>
+  </div>
+  <div class="card"><h3>Solar and demand forecast</h3><p class="sub">The shaded area shows how much solar power we may get.</p><div class="ch" style="height:320px"><canvas id="c-pred"></canvas></div></div>
+  <div class="card"><h3>What we suggest</h3><p id="p-say" style="margin:4px 0 8px"></p>
+    <div class="ins"><span class="tag ok">Do</span><div><b>Run the irrigation pump between 11 am and 1 pm</b><span>Solar surplus is highest then. Moving the pump saves about 14 kWh of battery cycling.</span></div></div>
+    <div class="ins"><span class="tag warn">Prepare</span><div><b>Charge the battery to 95% before 2 pm</b><span>Cloud cover will cut afternoon generation, and demand rises after sunset.</span></div></div>
+    <div class="ins"><span class="tag bad">Avoid</span><div><b>Do not schedule the flour mill after 6 pm</b><span>It would overlap the evening peak and force a 45-minute diesel start.</span></div></div>
+  </div>
+</section>
+
+<section class="view" id="battery">
+  <div class="top"><div><h1>Solar &amp; Battery</h1><p>The sun makes the power. The battery saves it for later.</p></div><div class="btns" id="bmode"><button class="on" data-m="Balanced">Balanced</button><button data-m="Extend life">Extend life</button><button data-m="Max backup">Max backup</button></div></div>
+  <div class="grid g2">
+    <div class="card"><h3>State of charge</h3><p class="sub" id="b-mode">Mode: Balanced · fills up to 90% and always keeps 20% for emergencies</p>
+      <div class="ring"><svg viewBox="0 0 140 140" width="150" height="150" role="img" aria-label="Battery charge level"><circle cx="70" cy="70" r="58" fill="none" stroke="var(--soft)" stroke-width="14"/><circle id="ring" cx="70" cy="70" r="58" fill="none" stroke="var(--batt)" stroke-width="14" stroke-linecap="round" stroke-dasharray="364.4" stroke-dashoffset="100" transform="rotate(-90 70 70)"/><text id="b-soc" x="70" y="78" text-anchor="middle" font-size="28" font-weight="700">0%</text></svg>
+      <div><div class="sub" style="margin:0">The battery can power the village for about</div><b style="font:700 26px 'Bricolage Grotesque'" id="b-back">0 h</b>
+      <div class="sub" style="margin:8px 0 0" id="b-flow"></div></div></div></div>
+    <div class="grid g4" style="grid-template-columns:1fr 1fr">
+      <div class="card kpi"><span>Solar power now</span><b id="b-sol">0 kW</b><em class="up">From the sun</em></div>
+      <div class="card kpi"><span>Battery health</span><b>94%</b><em class="up">Good condition</em></div>
+      <div class="card kpi"><span>Battery warmth</span><b id="b-t">31 °C</b><em class="up">Normal is 15–40 °C</em></div>
+      <div class="card kpi"><span>Battery size</span><b>240 kWh</b><em>Sample village</em></div></div>
+  </div>
+  <details class="card"><summary>Technical details for operators</summary><p class="sub" style="margin-top:10px">Voltage of each battery cell. Highlighted cells are being balanced.</p><div class="cells" id="cells"></div></details>
+  <div class="card"><h3>When the battery fills and gives power</h3><p class="sub">Each block is one hour, from midnight to 11 pm. Sample plan.</p><div class="sched" id="sched"></div>
+    <div class="leg"><span><s style="background:var(--batt)"></s>Filling up</span><span><s style="background:var(--load)"></s>Giving power</span><span><s style="background:var(--line)"></s>Idle</span></div></div>
+</section>
+
+<section class="view" id="distribution">
+  <div class="top"><div><h1>Energy Distribution</h1><p>Where electricity comes from, and who gets it first.</p></div>
+    <div class="btns" id="dmode"><button class="on" data-m="1">Balanced</button><button data-m="2">Save battery</button><button data-m="3">Max comfort</button></div></div>
+  <div class="grid g2">
+    <div class="card"><h3>Where today’s electricity comes from</h3><p class="sub">Sample data for right now.</p><div class="ch" style="height:250px"><canvas id="c-mix"></canvas></div></div>
+    <div class="card"><h3>In simple words</h3><div id="mix-say"></div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card"><h3>Electricity available</h3><p class="sub" id="d-sum"></p>
+      <div class="bar" style="height:16px;margin-bottom:14px"><i id="d-bar" style="width:0"></i></div>
+      <label class="sub" for="cap" style="display:block">Available supply: <b id="cap-v">110</b> kW</label><input type="range" id="cap" min="40" max="180" value="110">
+      <p class="sub" style="margin-top:12px">Drag the slider to test how the grid responds when generation drops.</p></div>
+    <div class="card"><h3>Who gets electricity first</h3><div id="feeds"></div></div>
+  </div>
+</section>
+
+<section class="view" id="reports">
+  <div class="top"><div><h1>Reports</h1><p>Simple summaries of how much electricity was made and used. Sample data.</p></div>
+    <div class="btns"><select id="per" aria-label="Report period"><option value="7">Last 7 days</option><option value="30">Last 30 days</option><option value="90">Last 90 days</option></select><button class="on" id="pdf">Download PDF</button></div></div>
+  <div class="grid g4" id="rk"></div>
+  <div class="grid g2">
+    <div class="card"><h3>Where electricity came from</h3><p class="sub">kWh per period.</p><div class="ch"><canvas id="c-rep"></canvas></div></div>
+    <div class="card"><h3>Who uses electricity</h3><p class="sub">Share of total village use.</p><div class="ch"><canvas id="c-sec"></canvas></div></div>
+  </div>
+  <div class="card"><h3>Summary</h3><div class="tw"><table><thead><tr><th>Metric</th><th>Value</th><th>Change</th></tr></thead><tbody id="rt"></tbody></table></div></div>
+</section>
+
+<section class="view" id="account">
+  <div class="top"><div><h1>My account</h1><p>Your profile, connection and notification settings.</p></div><span class="pill">Sample account</span></div>
+  <div class="grid g2">
+    <div class="card"><h3>Profile</h3><p class="sub">Change how your name appears on the site.</p>
+      <label class="fl" for="a-name">Name</label><input class="in" id="a-name">
+      <label class="fl" for="a-ph">Mobile number</label><input class="in" id="a-ph" inputmode="tel" readonly>
+      <label class="fl" for="a-vil">Village</label><input class="in" id="a-vil" value="Chandpur">
+      <button class="pbtn2" id="a-save">Save changes</button> <button id="a-del" style="margin-top:14px">Delete my account</button><p class="sub" style="margin-top:10px">Your details stay on this device only. Deleting your account removes them.</p> <span class="sub" id="a-msg"></span></div>
+    <div class="card"><h3>My household</h3><p class="sub">Only you can see this page. Numbers are samples.</p>
+      <div class="tw"><table><tbody><tr><td>Meter ID</td><td><b>MG07-0412</b></td></tr><tr><td>Connection</td><td><b>Household, Feeder 1</b></td></tr><tr><td>Sanctioned load</td><td><b>2 kW</b></td></tr><tr><td>Tariff</td><td><b>₹6 per kWh</b></td></tr><tr><td>Used this month</td><td><b id="a-kwh">0 kWh</b></td></tr><tr><td>Estimated bill</td><td><b id="a-bill">₹0</b></td></tr></tbody></table></div></div>
+  </div>
+  <div class="grid g2">
+    <div class="card"><h3>Notifications</h3><p class="sub">Choose which alerts you want. (Demo: SMS is not connected yet.)</p>
+      <div class="nrow"><div><b>Power cut alerts</b><div class="sub" style="margin:0">When the power goes off or comes back</div></div><input type="checkbox" class="sw" id="n-cut" checked aria-label="Power cut alerts"></div>
+      <div class="nrow"><div><b>Low battery warning</b><div class="sub" style="margin:0">When the village battery is running low</div></div><input type="checkbox" class="sw" id="n-low" checked aria-label="Low battery warning"></div>
+      <div class="nrow"><div><b>Monthly usage report</b><div class="sub" style="margin:0">Your usage and bill on the 1st</div></div><input type="checkbox" class="sw" id="n-rep" aria-label="Monthly usage report"></div></div>
+    <div class="card"><h3>Change PIN</h3><p class="sub">Use at least 4 digits.</p>
+      <label class="fl" for="p-cur">Current PIN</label><input class="in" id="p-cur" type="password" autocomplete="current-password">
+      <label class="fl" for="p-new">New PIN</label><input class="in" id="p-new" type="password" autocomplete="new-password">
+      <label class="fl" for="p-cf">Confirm new PIN</label><input class="in" id="p-cf" type="password" autocomplete="new-password">
+      <button class="pbtn2" id="a-pin">Change PIN</button> <span class="sub" id="p-msg"></span></div>
+  </div>
+</section>
+
+<section class="view" id="support">
+  <div class="top"><div><h1>Help</h1><p>Answers to common questions, and how to get help.</p></div><span class="pill">Sample contacts</span></div>
+  <div class="grid g4">
+    <div class="card kpi"><span>Helpline, 6 am to 10 pm</span><b style="font-size:22px">1800-000-000</b><em>Free call</em></div>
+    <div class="card kpi"><span>WhatsApp</span><b style="font-size:22px">+91 90000 00000</b><em>Replies within 1 hour</em></div>
+    <div class="card kpi"><span>Email</span><b style="font-size:17px;word-break:break-all">help@gramurja.example</b><em>Replies within 1 day</em></div>
+    <div class="card kpi"><span>Local operator</span><b style="font-size:22px">Ramesh Kumar</b><em>Chandpur office</em></div>
+  </div>
+  <div class="grid g2">
+    <div class="card"><h3>Report a problem</h3><p class="sub">Tell us what is wrong and we will send it to the operator.</p>
+      <label class="fl" for="s-type">Problem</label><select class="in" id="s-type"><option>Power cut</option><option>Lights flickering</option><option>Low voltage</option><option>Meter or billing</option><option>Something else</option></select>
+      <label class="fl" for="s-msg">Details</label><textarea class="in" id="s-msg" rows="4" placeholder="What happened, and since when?"></textarea>
+      <button class="pbtn2" id="s-send">Save report</button> <span class="sub" id="s-ok"></span></div>
+    <div class="card"><h3>My reports</h3><p class="sub">Reports you sent during this visit.</p><div id="s-list"><p class="sub">No reports yet.</p></div></div>
+  </div>
+  <div class="card"><h3>How to use this website</h3>
+    <div class="ins"><span class="tag ok">1</span><div><b>Open the Dashboard</b><span>It shows electricity used, solar power, battery level, and if power is available.</span></div></div>
+    <div class="ins"><span class="tag ok">2</span><div><b>Check the Forecast</b><span>It tells you the best time to run the pump or mill.</span></div></div>
+    <div class="ins"><span class="tag ok">3</span><div><b>Watch for alerts</b><span>A coloured bar appears at the top if there is a power cut or the battery is low.</span></div></div>
+    <div class="ins"><span class="tag ok">4</span><div><b>Sign up to see your own home</b><span>Guests can see village information. Only you can see your own page.</span></div></div></div>
+  <div class="card"><h3>Common questions</h3>
+    <details><summary>What is Guest Access?</summary><p>You can look at village information without an account. Personal household details need a login.</p></details>
+    <details><summary>Why does it say “sample data”?</summary><p>This website is a demo. It is not connected to real meters yet, so the numbers are examples.</p></details>
+    <details><summary>Is my personal information safe?</summary><p>Your account is saved only on this device, and your PIN is never saved as plain text. Village pages never show any household’s private details.</p></details>
+    <details><summary>What should I do in a power cut?</summary><p>Switch off heavy appliances so they do not start suddenly when power returns, then report the problem below.</p></details>
+    <details><summary>Why does the power sometimes drop in the evening?</summary><p>After sunset the village runs on the battery, and everyone uses lights and appliances at the same time. Run heavy appliances between 11 am and 1 pm instead.</p></details>
+    <details><summary>When is the best time to run the pump or mill?</summary><p>Late morning to early afternoon, when solar output is highest. The AI prediction page shows the best hours for each day.</p></details>
+    <details><summary>What does the battery percentage mean?</summary><p>It shows how much stored energy is left. Above 55% power is good, below 35% please save electricity.</p></details>
+    <details><summary>How is my bill calculated?</summary><p>Your bill is the units (kWh) you used on your meter multiplied by the tariff. You can see both on the Account page.</p></details>
+    <details><summary>How do I change my PIN?</summary><p>Open Account, go to Change PIN, and enter your current and new PIN. If you forgot it, call the helpline.</p></details>
+  </div>
+</section>
+
+</main>
+<script>
+const $=s=>document.querySelector(s),$$=s=>[...document.querySelectorAll(s)];
+const css=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const H=[...Array(24).keys()];
+const sol=h=>Math.max(0,Math.sin((h-6)/12*Math.PI))**1.3*125;
+const wnd=h=>22+10*Math.sin(h/3.5+1);
+const dem=h=>38+22*Math.exp(-((h-7)**2)/4)+48*Math.exp(-((h-19.5)**2)/5)+10*Math.exp(-((h-12)**2)/8);
+const S={soc:72,sol:0,wnd:0,load:0,bat:0};
+const charts={};
+const fmt=n=>Math.round(n);
+
+function chart(id,cfg){const cv=$('#'+id);if(!cv)return;if(typeof Chart==='undefined'){cv.parentNode.innerHTML='<p class="sub">Charts could not load. Check your internet connection and reload.</p>';return}if(charts[id])charts[id].destroy();Chart.defaults.color=css('--mute');Chart.defaults.font.family='"Public Sans",sans-serif';Chart.defaults.borderColor=css('--line');
+  cfg.options=Object.assign({responsive:true,maintainAspectRatio:false,animation:{duration:400},plugins:{legend:{labels:{boxWidth:10,usePointStyle:true}}}},cfg.options||{});
+  charts[id]=new Chart($('#'+id),cfg)}
+const hl=h=>String(h%24).padStart(2,'0')+':00';
+
+/* ---------- live data ---------- */
+const now=new Date().getHours()+new Date().getMinutes()/60;
+const live={sol:[],wnd:[],load:[]};
+function tick(){
+  S.sol=Math.max(0,sol(now)*rnd(.94,1.04));S.wnd=Math.max(0,wnd(now)*rnd(.9,1.1));S.load=dem(now)*rnd(.95,1.05);
+  S.bat=S.sol+S.wnd-S.load;S.soc=Math.min(98,Math.max(22,S.soc+S.bat/240*(2/3600)*100*40));
+  const g=S.sol+S.wnd;
+  $('#k-gen').textContent=fmt(S.sol)+' kW';$('#k-gen2').textContent=S.sol>2?'The sun is shining':'No sun right now';
+  $('#k-load').textContent=fmt(S.load)+' kW';$('#k-load2').textContent=S.bat>=0?'There is extra power':'Battery is helping';
+  $('#k-load2').className=S.bat>=0?'up':'dn';
+  $('#k-soc').textContent=fmt(S.soc)+'%';$('#k-soc2').textContent=S.bat>=0?'Filling up':'Giving power';$('#k-soc2').className=S.bat>=0?'up':'dn';
+  $('#n-sol').textContent=fmt(S.sol)+' kW';$('#n-wnd').textContent=fmt(S.wnd)+' kW';$('#n-lod').textContent=fmt(S.load)+' kW';$('#n-bat').textContent=(S.bat>=0?'+':'')+fmt(S.bat)+' kW';
+  $('#f1').style.opacity=S.sol>2?1:.15;
+  [['sol'],['wnd'],['load']].forEach(([k])=>{live[k].push(+S[k].toFixed(1));if(live[k].length>30)live[k].shift()});
+  if(charts['c-live']){const c=charts['c-live'];c.data.labels=live.sol.map((_,i)=>(i-live.sol.length+1)*2+'s');c.data.datasets[0].data=live.sol;c.data.datasets[1].data=live.wnd;c.data.datasets[2].data=live.load;c.update('none')}
+  monitor();battery();homeUp();alertsUp();usageUp();mixUp();commUp();
+}
+const devices=[['Solar array A','Inverter',()=>S.sol*.55,230,50.0],['Solar array B','Inverter',()=>S.sol*.45,230,50.0],['Wind turbine 1','Generator',()=>S.wnd,228,49.9],['Battery bank','Storage',()=>Math.abs(S.bat),51.2,'–'],['Feeder 1 · Homes','Meter',()=>S.load*.5,229,50.0],['Feeder 2 · Pumps &amp; mill','Meter',()=>S.load*.3,231,50.1],['Feeder 3 · Critical','Meter',()=>S.load*.2,230,50.0]];
+function monitor(){if(!$('#monitoring').classList.contains('on'))return;
+  $('#mon-body').innerHTML=devices.map(d=>{const p=d[2]();return `<tr><td>${d[0]}</td><td>${d[1]}</td><td><b>${p.toFixed(1)} kW</b></td><td>${(d[3]+rnd(-1.2,1.2)).toFixed(1)} V</td><td>${d[4]==='–'?'–':(d[4]+rnd(-.05,.05)).toFixed(2)+' Hz'}</td><td><span class="tag ok">Online</span></td></tr>`}).join('')}
+
+/* ---------- views ---------- */
+const inits={
+dashboard(){chart('c-day',{type:'line',data:{labels:H.map(hl),datasets:[
+  {label:'Solar & wind',data:H.map(h=>sol(h)+wnd(h)),borderColor:css('--solar'),backgroundColor:css('--solar')+'33',fill:true,tension:.35,pointRadius:0},
+  {label:'Electricity used',data:H.map(dem),borderColor:css('--load'),tension:.35,pointRadius:0}]},options:{scales:{x:{ticks:{maxTicksLimit:7}}}}})},
+monitoring(){usageDraw();monitor()},
+prediction(){drawPred(+($('#hz .on').dataset.h))},
+battery(){const s=$('#sched');if(!s.children.length){s.innerHTML=H.map(h=>{const c=h>=9&&h<=15,d=h>=18&&h<=22||h>=5&&h<=6;return `<i class="${c?'c':d?'d':''}" title="${hl(h)} ${c?'charging':d?'discharging':'idle'}"></i>`}).join('')}
+  $('#cells').innerHTML=Array.from({length:16},(_,i)=>{const v=3.2+rnd(-.006,.006)+(i===10?.02:0);return `<div class="cell ${i===10?'hot':''}">C${i+1}<br>${v.toFixed(3)}</div>`}).join('');battery()},
+distribution(){drawFeeds();drawMix()},
+reports(){drawRep()},account(){fillAcc()},support(){},home(){homeUp()},community(){commDraw()}};
+function battery(){if(!$('#battery').classList.contains('on'))return;
+  $('#ring').style.strokeDashoffset=364.4*(1-S.soc/100);$('#b-soc').textContent=fmt(S.soc)+'%';
+  const usable=(S.soc-20)/100*240;$('#b-back').textContent=Math.max(0,usable/Math.max(S.load,1)).toFixed(1)+' h';
+  $('#b-flow').textContent=(S.bat>=0?'Filling up at ':'Giving power at ')+Math.abs(S.bat).toFixed(0)+' kW';
+  $('#b-t').textContent=(31+rnd(-.4,.4)).toFixed(1)+' °C';$('#b-sol').textContent=fmt(S.sol)+' kW'}
+$('#bmode').onclick=e=>{const b=e.target.closest('button');if(!b)return;$$('#bmode button').forEach(x=>x.classList.toggle('on',x===b));
+  const t={'Balanced':'fills up to 90% and always keeps 20% for emergencies','Extend life':'fills up to 80% so the battery lasts longer','Max backup':'fills up fully and keeps 40% for emergencies'};$('#b-mode').textContent='Mode: '+b.dataset.m+' · '+t[b.dataset.m]};
+
+function drawPred(hrs){
+  const L=[...Array(hrs).keys()],h=i=>(Math.floor(now)+i)%24,cl=i=>1-.38*Math.sin(i/9);
+  const s=L.map(i=>sol(h(i))*cl(i)),dm=L.map(i=>dem(h(i))*1.02);
+  const ts=fmt(s.reduce((a,b)=>a+b,0)),td=fmt(dm.reduce((a,b)=>a+b,0));$('#p-sol').textContent=ts+' kWh';$('#p-say').textContent='In the next '+hrs+' hours the sun may make about '+ts+' units of electricity, and the village may need about '+td+' units. '+(ts>=td*.8?'That should be enough for most needs.':'Solar may not cover everything, so please save power in the evening.');$('#p-dem').textContent=fmt(dm.reduce((a,b)=>a+b,0))+' kWh';
+  chart('c-pred',{type:'line',data:{labels:L.map(i=>hl(h(i))),datasets:[
+    {label:'Solar low',data:s.map(v=>v*.82),borderWidth:0,pointRadius:0,fill:false,tension:.35},
+    {label:'Solar power expected',data:s.map(v=>v*1.15),borderColor:css('--solar'),backgroundColor:css('--solar')+'33',fill:'-1',pointRadius:0,tension:.35},
+    {label:'Power needed',data:dm,borderColor:css('--load'),borderDash:[5,4],pointRadius:0,tension:.35}]},
+    options:{plugins:{legend:{labels:{filter:i=>i.text!=='Solar low',boxWidth:10}}},scales:{x:{ticks:{maxTicksLimit:8}}}}})}
+$('#hz').onclick=e=>{const b=e.target.closest('button');if(!b)return;$$('#hz button').forEach(x=>x.classList.toggle('on',x===b));drawPred(+b.dataset.h)};
+
+/* distribution */
+const feeds=[['Clinic &amp; water treatment',14,1,true],['School &amp; community hall',12,2,true],['Street lights',8,2,true],['Homes (84 households)',46,2,true],['Irrigation pump',24,3,true],['Flour mill &amp; workshops',20,3,true]];
+let dm=1;
+function drawFeeds(){
+  const cap=+$('#cap').value;$('#cap-v').textContent=cap;
+  const limit=dm===2?cap*.8:dm===3?cap*1.0:cap*.92;
+  let left=limit,out=[];
+  [1,2,3].forEach(p=>feeds.forEach((f,i)=>{if(f[2]!==p)return;const want=f[3]?f[1]:0;const give=p===1&&want?want:Math.min(want,Math.max(0,left));left-=give;out[i]=[give,want]}));
+  const used=out.reduce((a,o)=>a+o[0],0),want=feeds.reduce((a,f)=>a+(f[3]?f[1]:0),0);
+  $('#d-bar').style.width=Math.min(100,used/cap*100)+'%';
+  $('#d-sum').textContent=used>=want?`All ${fmt(want)} kW of requested load is supplied.`:`Supplying ${fmt(used)} of ${fmt(want)} kW. Lowest-priority feeders are reduced first.`;
+  $('#feeds').innerHTML=feeds.map((f,i)=>{const [g,w]=out[i],pct=w?g/w*100:0,st=!f[3]?['Off','']:pct>=99?['Full','ok']:pct>0?['Reduced','warn']:['Shed','bad'];
+   return `<div class="feed"><div><b>${f[0]}</b><div class="sub" style="margin:0">${f[2]===1?'Critical':f[2]===2?'Essential':'Deferrable'} · ${fmt(g)} / ${f[1]} kW</div></div><span class="tag ${st[1]}">${st[0]}</span><input type="checkbox" class="sw" aria-label="Power ${f[0].replace(/&amp;/g,'and')}" ${f[3]?'checked':''} ${f[2]===1?'disabled':''} data-i="${i}"><div class="bar"><i style="width:${pct}%"></i></div></div>`}).join('')}
+$('#feeds').onchange=e=>{feeds[+e.target.dataset.i][3]=e.target.checked;drawFeeds()};
+$('#cap').oninput=drawFeeds;
+$('#dmode').onclick=e=>{const b=e.target.closest('button');if(!b)return;dm=+b.dataset.m;$$('#dmode button').forEach(x=>x.classList.toggle('on',x===b));drawFeeds()};
+
+/* reports */
+let rep={};
+function drawRep(){
+  const d=+$('#per').value,n=d===7?7:d===30?10:12,step=d/n;
+  const lab=[...Array(n).keys()].map(i=>d===7?['Mon','Tue','Wed','Thu','Fri','Sat','Sun'][i]:'Wk '+(i+1));
+  const k=d/7;const so=lab.map(()=>Math.round(rnd(540,640)*step)),wi=lab.map(()=>Math.round(rnd(190,300)*step)),di=lab.map(()=>Math.round(rnd(0,30)*step));
+  const tot=a=>a.reduce((x,y)=>x+y,0),gen=tot(so)+tot(wi)+tot(di);
+  rep={'Electricity made':gen+' kWh','Electricity used':Math.round(gen*.93)+' kWh','Clean energy share':Math.round((1-tot(di)/gen)*100)+'%','Diesel saved':Math.round(d*14.5)+' litres','Pollution avoided (CO2)':(d*38/1000).toFixed(1)+' t','Power available':'99.'+Math.round(rnd(5,9))+'%','Power cuts':Math.max(0,Math.round(d/45))+''};
+  $('#rk').innerHTML=['Electricity made','Clean energy share','Diesel saved','Power available'].map(m=>`<div class="card kpi"><span>${m}</span><b>${rep[m]}</b></div>`).join('');
+  const chg=['+4.2%','+1.1%','+9.0%','+3.6%','+9.0%','+0.2%','−1'];
+  $('#rt').innerHTML=Object.entries(rep).map(([m,v],i)=>`<tr><td>${m}</td><td><b>${v}</b></td><td class="up">${chg[i]} vs previous</td></tr>`).join('');
+  chart('c-rep',{type:'bar',data:{labels:lab,datasets:[{label:'Solar',data:so,backgroundColor:css('--solar')},{label:'Wind',data:wi,backgroundColor:css('--wind')},{label:'Diesel',data:di,backgroundColor:css('--diesel')}]},options:{scales:{x:{stacked:true},y:{stacked:true}}}});
+  chart('c-sec',{type:'doughnut',data:{labels:['Homes','Irrigation','Mill &amp; workshops','Public services'].map(s=>s.replace('&amp;','and')),datasets:[{data:[44,24,19,13],backgroundColor:[css('--accent'),css('--wind'),css('--solar'),css('--load')],borderColor:css('--panel'),borderWidth:3}]},options:{cutout:'62%'}});
+}
+$('#per').onchange=drawRep;
+$('#pdf').onclick=async()=>{const sel=$('#per'),L=['#About this report','Village: Chandpur (sample village)','Period: '+sel.options[sel.selectedIndex].text,'Created: '+new Date().toLocaleDateString(),'NOTE: These numbers are simulated samples, not from real meters.','','#Energy summary',...Object.entries(rep).map(([k,v])=>k+': '+v)];await saveFile('gram-urja-report.pdf',makePdf('Gram Urja Energy Report',L))};
+
+/* routing */
+function route(go){const v=go||(location.hash||'#home').slice(1);let id=document.getElementById(v)&&$$('.view').some(x=>x.id===v)?v:'home';if(id==='account'&&!acct){pending=id;if(go){openAccess('in');msg('Please log in to see your personal account.')}id='home'}
+  $$('.view').forEach(x=>x.classList.toggle('on',x.id===id));$$('aside a').forEach(a=>a.classList.toggle('on',a.dataset.v===id));
+  try{inits[id]()}catch(err){console.error(err)}scrollTo(0,0)}
+addEventListener('hashchange',()=>route());$$('aside a').forEach(a=>a.addEventListener('click',e=>{e.preventDefault();try{history.replaceState(null,'','#'+a.dataset.v)}catch(_){}route(a.dataset.v)}));
+
+/* login */
+$('#gs').onclick=()=>{$('#welcome').classList.add('hide');scrollTo(0,0)};
+$('#wl').onclick=()=>{$('#welcome').classList.add('hide');$('#login').classList.remove('hide')};
+function homeUp(){const sp=supply();$('#h-gen').textContent=fmt(S.sol)+' kW';$('#h-soc').textContent=fmt(S.soc)+'%';
+  $('#h-st').textContent=sp[0];$('#h-st2').textContent=sp[1];$('#h-st2').className=sp[2];
+  $('#h-bk').textContent='Lasts about '+Math.max(0,(S.soc-20)/100*240/Math.max(S.load,1)).toFixed(1)+' hours'}
+$$('[data-go]').forEach(b=>b.onclick=()=>route(b.dataset.go));
+let acct=null,tk=1040,pending=null,demo=null;const tickets=[];
+const LS={get:k=>{try{return localStorage.getItem(k)}catch(_){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(_){}},del:k=>{try{localStorage.removeItem(k)}catch(_){}}};
+const users=()=>{try{return JSON.parse(LS.get('gu_users')||'{}')}catch(_){return{}}};
+async function hash(t){try{const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('gu:'+t));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}catch(_){let h=5381;for(const c of 'gu:'+t)h=(h*33+c.charCodeAt(0))>>>0;return 'x'+h}}
+const msg=t=>{$('#ac-msg').textContent=t};
+function ui(){const u=!!acct;$('#who').textContent=u?'Hello, '+acct.name:'Guest visitor';$('#h-hi').textContent=u?'Welcome, '+acct.name:'Welcome to Gram Urja';$('#li').classList.toggle('hide',u);$('#lo').classList.toggle('hide',!u)}
+function tabTo(t){$('#f-in').classList.toggle('hide',t!=='in');$('#f-up').classList.toggle('hide',t!=='up');$$('#login .seg button').forEach(b=>b.classList.toggle('on',b.dataset.t===t))}
+function openAccess(t){$('#login').classList.remove('hide');tabTo(t||'in');msg('')}
+function signedIn(name,mobile){acct={name:name,mobile:mobile};LS.set('gu_session',mobile);$('#login').classList.add('hide');$('#welcome').classList.add('hide');ui();const t=pending;pending=null;route(t||'home')}
+$$('#login .seg button').forEach(b=>b.onclick=()=>{tabTo(b.dataset.t);msg('')});
+$('#su-go').onclick=async()=>{const n=$('#su-n').value.trim(),m=$('#su-m').value.replace(/\D/g,''),p=$('#su-p').value;
+  if(!n)return msg('Please type your name.');if(m.length<10)return msg('Please type a 10-digit mobile number.');if(p.length<4)return msg('Your PIN needs at least 4 numbers.');
+  const u=users();if(u[m])return msg('This number already has an account. Please log in.');
+  u[m]={name:n.slice(0,30),pin:await hash(m+p)};LS.set('gu_users',JSON.stringify(u));signedIn(u[m].name,m)};
+$('#lg').onclick=async()=>{const m=$('#lu').value.replace(/\D/g,''),p=$('#lp').value,u=users()[m];
+  if(!m||!p)return msg('Please type your mobile number and PIN.');
+  if(!u||u.pin!==await hash(m+p))return msg('Mobile number or PIN is not correct.');signedIn(u.name,m)};
+$('#lp').onkeydown=e=>{if(e.key==='Enter')$('#lg').click()};
+$('#gst').onclick=()=>{$('#login').classList.add('hide');$('#welcome').classList.add('hide');const t=pending;pending=null;route(t&&t!=='account'?t:'dashboard')};
+$('#lx').onclick=()=>{pending=null;$('#login').classList.add('hide')};
+$('#li').onclick=()=>openAccess('in');$('#gs2').onclick=()=>openAccess('up');
+$('#lo').onclick=()=>{LS.del('gu_session');acct=null;ui();route('home')};
+function fillAcc(){if(!acct)return;const mk=monthAll.reduce((a,b)=>a+b,0);$('#a-name').value=acct.name;$('#a-ph').value=acct.mobile;$('#a-kwh').textContent=Math.round(mk)+' kWh';$('#a-bill').textContent='₹'+Math.round(mk*6);$('#a-msg').textContent=''}
+$('#a-save').onclick=()=>{const n=$('#a-name').value.trim();if(!n){$('#a-msg').textContent='Please enter a name.';return}const u=users();if(u[acct.mobile]){u[acct.mobile].name=n.slice(0,30);LS.set('gu_users',JSON.stringify(u))}acct.name=n.slice(0,30);ui();$('#a-msg').textContent='Saved.'};
+$('#a-pin').onclick=async()=>{const c=$('#p-cur').value,a=$('#p-new').value,b=$('#p-cf').value,u=users(),r=u[acct.mobile],o=t=>{$('#p-msg').textContent=t};
+  if(!r||r.pin!==await hash(acct.mobile+c))return o('Your current PIN is not correct.');if(a.length<4)return o('The new PIN needs at least 4 numbers.');if(a!==b)return o('The two new PINs do not match.');
+  r.pin=await hash(acct.mobile+a);LS.set('gu_users',JSON.stringify(u));$('#p-cur').value=$('#p-new').value=$('#p-cf').value='';o('PIN changed.')};
+$('#a-del').onclick=()=>{if(!confirm('Delete your account and details from this device?'))return;const u=users();delete u[acct.mobile];LS.set('gu_users',JSON.stringify(u));LS.del('gu_session');acct=null;ui();route('home')};
+$('#s-send').onclick=()=>{const m=$('#s-msg').value.trim();if(!m){$('#s-ok').textContent='Please add a few details.';return}const id='#'+(++tk);tickets.unshift([id,$('#s-type').value,new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})]);$('#s-msg').value='';$('#s-ok').textContent='Saved as report '+id+'. Demo only: it is not sent to an operator yet.';$('#s-list').innerHTML=tickets.map(t=>`<div class="ins"><span class="tag warn">Open</span><div><b>${t[1]}</b><span>Report ${t[0]} · saved ${t[2]}</span></div></div>`).join('')};
+
+/* alerts and supply status (simulated) */
+function supply(){if(demo==='out')return['Power cut','There is no electricity right now (demo).','dn'];if(demo==='low'||S.soc<30)return['Limited','Battery is low. Please use less power.','dn'];if(S.soc<50)return['Good','Use big machines only in the daytime.',''];return['Good','Power is available.','up']}
+function alerts(){const a=[];if(demo==='out')a.push(['bad','Power cut','There is no electricity (demo preview). Switch off heavy appliances so they do not start suddenly when power returns.']);if(demo==='low'||S.soc<30)a.push(['warn','Battery low','Please use only lights, fans and phone chargers until the sun fills the battery.']);if(!a.length)a.push(['ok','All clear','No power cuts and no low battery warnings.']);return a}
+function alertsUp(){noteCheck();const sp=supply(),al=alerts(),bar=$('#alert'),h=al.map(a=>`<div class="ins"><span class="tag ${a[0]}">${a[1]}</span><div>${a[2]}</div></div>`).join('');
+  $('#k-sup').textContent=sp[0];$('#k-sup2').textContent=sp[1];$('#k-sup2').className=sp[2];$('#d-alerts').innerHTML=h;$('#c-alerts').innerHTML=h;
+  $('#c-av').textContent=demo==='out'?'No':'Yes';$('#c-av2').textContent=sp[1];$('#c-av2').className=sp[2];
+  $('#d-say').textContent='Right now the village is using '+fmt(S.load)+' kW of electricity. The sun is making '+fmt(S.sol)+' kW and the battery is '+fmt(S.soc)+'% full. '+(S.bat>=0?'There is extra power, so the battery is filling up.':'The battery is helping to supply power.');
+  if(al[0][0]==='ok')bar.classList.add('hide');else{bar.className='alertbar '+al[0][0];bar.textContent=al[0][1]+'. '+al[0][2]}}
+$('#da-out').onclick=()=>{demo='out';alertsUp()};$('#da-low').onclick=()=>{demo='low';alertsUp()};$('#da-clr').onclick=()=>{demo=null;alertsUp()};
+
+/* community, usage, distribution mix */
+function commUp(){if(!$('#community').classList.contains('on'))return;const n=Math.floor(now)+1;let u=0,x=0;for(let h=0;h<n;h++){u+=dem(h);x+=sol(h)}$('#c-use').textContent=fmt(u)+' kWh';$('#c-sol').textContent=fmt(x)+' kWh'}
+function commDraw(){chart('c-comm',{type:'line',data:{labels:H.map(hl),datasets:[{label:'Solar made',data:H.map(sol),borderColor:css('--solar'),backgroundColor:css('--solar')+'33',fill:true,tension:.35,pointRadius:0},{label:'Village usage',data:H.map(dem),borderColor:css('--load'),tension:.35,pointRadius:0}]},options:{scales:{x:{ticks:{maxTicksLimit:7}},y:{title:{display:true,text:'kW'}}}}});commUp()}
+const hh=h=>dem(h)/380,dayKwh=i=>3+.6*Math.sin(i*1.7)+.3*Math.cos(i*.9),monthAll=[...Array(30).keys()].map(dayKwh);let uper='d';
+function usageUp(){if(!$('#monitoring').classList.contains('on'))return;const n=Math.floor(now)+1;let t=0;for(let h=0;h<n;h++)t+=hh(h);const m=monthAll.reduce((a,b)=>a+b,0);$('#u-today').textContent=t.toFixed(1)+' kWh';$('#u-month').textContent=Math.round(m)+' kWh';$('#u-avg').textContent=(m/30).toFixed(1)+' kWh'}
+function usageDraw(){const d=uper==='d',v=d?H.map(hh):monthAll,m=Math.max(...v);$('#u-title').textContent=d?'Electricity used each hour today':'Electricity used each day this month';
+  chart('c-usage',{type:'bar',data:{labels:d?H.map(h=>String(h).padStart(2,'0')+'h'):v.map((_,i)=>i+1),datasets:[{label:'kWh',data:v,backgroundColor:v.map(x=>x>m*.8?css('--pri'):css('--sage')),borderRadius:20,borderSkipped:false,barPercentage:.6}]},options:{plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{maxTicksLimit:d?8:10}},y:{title:{display:true,text:'Units (kWh)'}}}}});usageUp()}
+$('#uperiod').onclick=e=>{const b=e.target.closest('button');if(!b)return;uper=b.dataset.p;$$('#uperiod button').forEach(x=>x.classList.toggle('on',x===b));usageDraw()};
+function mixData(){const g=S.sol+S.wnd,l=Math.max(S.load,1),a=Math.min(g,l),b=S.soc>25?Math.min(Math.max(0,l-g),l):0,c=Math.max(0,l-a-b);return[a,b,c].map(x=>Math.round(x/l*100))}
+function mixUp(){if(!$('#distribution').classList.contains('on'))return;const d=mixData(),c=charts['c-mix'];if(c){c.data.datasets[0].data=d;c.update('none')}
+  $('#mix-say').innerHTML=[['var(--solar)','Solar and wind',d[0]],['var(--accent)','Battery',d[1]],['var(--diesel)','Grid or backup',d[2]]].map(r=>`<div class="ins"><span style="width:16px;height:16px;border-radius:50%;background:${r[0]};flex:none;margin-top:4px"></span><div><b>${r[1]}: ${r[2]}%</b></div></div>`).join('')+'<p class="sub">Sample numbers for right now.</p>'}
+function drawMix(){chart('c-mix',{type:'doughnut',data:{labels:['Solar & wind','Battery','Grid or backup'],datasets:[{data:mixData(),backgroundColor:[css('--solar'),css('--accent'),css('--diesel')],borderColor:css('--panel'),borderWidth:3}]},options:{cutout:'60%',plugins:{legend:{position:'bottom'}}}});mixUp()}
+
+/* PDF download (works offline, no libraries) */
+function makePdf(title,lines){const esc=t=>String(t).replace(/[^\x20-\x7E]/g,m=>m==='₹'?'Rs ':m==='₂'?'2':'-').replace(/([\\()])/g,'\\$1');
+  let y=780,c='BT /F2 20 Tf 50 '+y+' Td ('+esc(title)+') Tj ET\n';y-=34;
+  lines.forEach(l=>{const h=l[0]==='#';c+='BT /F'+(h?2:1)+' '+(h?13:11)+' Tf 50 '+y+' Td ('+esc(h?l.slice(1):l)+') Tj ET\n';y-=h?24:17});
+  const o=['<</Type/Catalog/Pages 2 0 R>>','<</Type/Pages/Kids[3 0 R]/Count 1>>','<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]/Contents 4 0 R/Resources<</Font<</F1 5 0 R/F2 6 0 R>>>>>>','<</Length '+c.length+'>>stream\n'+c+'endstream','<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>','<</Type/Font/Subtype/Type1/BaseFont/Helvetica-Bold>>'];
+  let p='%PDF-1.4\n',off=[];o.forEach((b,i)=>{off.push(p.length);p+=(i+1)+' 0 obj\n'+b+'\nendobj\n'});
+  const x=p.length;p+='xref\n0 '+(o.length+1)+'\n0000000000 65535 f \n'+off.map(n=>String(n).padStart(10,'0')+' 00000 n \n').join('')+'trailer\n<</Size '+(o.length+1)+'/Root 1 0 R>>\nstartxref\n'+x+'\n%%EOF';
+  return new Blob([p],{type:'application/pdf'})}
+async function saveFile(name,blob){let d=null;try{if(window.claude)d=await claude.use('downloads')}catch(_){}
+  if(d){try{await d.save({filename:name,data:blob});return}catch(e){if(e&&e.code==='declined')return}}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove()}
+
+/* theme and notifications */
+const ICON={moon:'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>',sun:'<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>'};
+function theme(t,redraw){document.documentElement.dataset.theme=t;LS.set('gu_theme',t);const th=$('#th'),w=t==='dark'?'Switch to light theme':'Switch to dark theme';th.innerHTML=t==='dark'?ICON.sun:ICON.moon;th.title=w;th.setAttribute('aria-label',w);if(redraw){const v=$$('.view').find(x=>x.classList.contains('on'));if(v)route(v.id)}}
+$('#th').onclick=()=>theme(document.documentElement.dataset.theme==='dark'?'light':'dark',true);
+theme(LS.get('gu_theme')==='dark'?'dark':'light',false);
+const notes=[{type:'ok',title:'Forecast tip',text:'The best time to run the pump or mill is 11 am to 1 pm.',time:'8:00 am',read:false},{type:'ok',title:'Weekly report ready',text:'Open Reports to download the PDF.',time:'Yesterday',read:false},{type:'ok',title:'Welcome to Gram Urja',text:'Numbers on this site are sample data for now.',time:'Yesterday',read:true}];
+let lastKey=null,tt=null;
+const lab={ok:'Info',warn:'Warning',bad:'Urgent'};
+function nRender(){const u=notes.filter(n=>!n.read).length,b=$('#nb');b.textContent=u;b.classList.toggle('hide',!u);
+  $('#nlist').innerHTML=notes.length?notes.map(n=>`<div class="ins${n.read?'':' unread'}"><span class="tag ${n.type}">${lab[n.type]}</span><div><b>${n.title}</b><span>${n.text}</span><small>${n.time}</small></div></div>`).join(''):'<p class="sub">No notifications yet.</p>'}
+function toast(t){const e=$('#toast');e.textContent=t;e.classList.remove('hide');clearTimeout(tt);tt=setTimeout(()=>e.classList.add('hide'),6000)}
+function pushNote(type,title,text,pref){if(pref&&!$('#'+pref).checked)return;notes.unshift({type:type,title:title,text:text,time:new Date().toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),read:false});if(notes.length>30)notes.pop();nRender();toast(title+'. '+text)}
+function noteCheck(){const k=demo==='out'?'out':(demo==='low'||S.soc<30)?'low':'ok';if(k===lastKey)return;
+  if(k==='out')pushNote('bad','Power cut','There is no electricity right now (demo preview).','n-cut');
+  else if(k==='low')pushNote('warn','Battery low','Please use only lights, fans and phone chargers.','n-low');
+  else if(lastKey)pushNote('ok','Power is back to normal','Electricity supply is good again.');
+  lastKey=k}
+function closeNp(){$('#np').classList.add('hide');$('#bell').setAttribute('aria-expanded','false')}
+$('#bell').onclick=e=>{e.stopPropagation();const o=!$('#np').classList.toggle('hide');$('#bell').setAttribute('aria-expanded',String(o))};
+$('#nread').onclick=()=>{notes.forEach(n=>n.read=true);nRender()};
+document.addEventListener('click',e=>{if(!e.target.closest('#np'))closeNp()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeNp()});
+nRender();
+
+/* restore saved session on this device */
+LS.del('gu');{const sm=LS.get('gu_session'),su=sm&&users()[sm];if(su){acct={name:su.name,mobile:sm};$('#welcome').classList.add('hide')}ui()}
+tick();setInterval(tick,2000);route();
+</script>
+</body>
+</html>
