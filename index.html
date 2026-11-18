@@ -6,6 +6,7 @@
 <title>Gram Urja – Microgrid Energy Management</title>
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Public+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <style>
 :root{--bg:#F5EADB;--panel:#FFFBF4;--ink:#2A1C10;--mute:#7B6552;--line:#E5D3BC;--pri:#C95C05;--accent:#E8700B;--sage:#FAD7A8;--solar:#F2B01E;--wind:#2B7FB8;--batt:#2B7A4B;--load:#B83225;--diesel:#8A7A6A;--soft:#F1E1CB;
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -639,6 +640,26 @@ document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.tar
 /* restore saved session on this device */
 LS.del('gu');{const sm=LS.get('gu_session'),su=sm&&users()[sm];if(su){acct={name:su.name,email:sm};$('#welcome').classList.add('hide')}ui()}
 tick();setInterval(tick,2000);route();
+/* ===== Supabase: live readings ===== */
+const SUPABASE_URL='https://dcwsnvwdckddijanakfx.supabase.co';
+const SUPABASE_ANON_KEY='sb_publishable_FEBZZxdAlz9pf36sRjHO6g_zqAs-4Vu';
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+function setLive(r){
+  if(Date.now()-new Date(r.ts).getTime()>900000){DATA.live=false;chip();return}
+  DATA.last={solar_kw:r.solar_kw,wind_kw:r.wind_kw,load_kw:r.load_kw,battery_pct:r.battery_pct};
+  DATA.live=true;chip();
+  $('#dsrc').textContent='Live (weather-based estimate)';
+}
+async function loadLatest(){
+  const {data}=await sb.from('readings').select('*').order('ts',{ascending:false}).limit(1);
+  if(data&&data[0])setLive(data[0]);
+}
+loadLatest();
+setInterval(loadLatest,60000);
+sb.channel('readings-feed')
+  .on('postgres_changes',{event:'INSERT',schema:'public',table:'readings'},p=>setLive(p.new))
+  .subscribe();
+$('#dsrc').onclick=()=>toast('These numbers are estimated from real weather at your location. Real meters are not connected yet.');
 </script>
 </body>
 </html>
